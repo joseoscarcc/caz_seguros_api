@@ -2,37 +2,30 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 
 
 const app = express();
 const port = 3050;
 const uri = process.env.MONGODB;
-// Connect to MongoDB
-mongoose.connect(uri, {})
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Error connecting to MongoDB:', err));
 
-// Create schema and model for autos collection
-const autoSchema = new mongoose.Schema({
-  marca: String,
-  // Add other fields if needed
+const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
 });
 
-const cotizacionSchema = new mongoose.Schema({
-  nombre: String,
-  correo: String,
-  codigoPostal: String,
-  tipoVehiculo: String,
-  marca: String,
-  year: Number,
-  modelo: String
-});
+const dbName = "CAZ";
+const collectionName = "autos";
+const collectionCotizacion = "cotizaciones";
 
-// Create model for cotizacion collection
-const Cotizacion = mongoose.model('cotizacion', cotizacionSchema);
-
-const Auto = mongoose.model('autos', autoSchema);
+  // Create references to the database and collection in order to run
+  // operations on them.
+const database = client.db(dbName);
+const collection = database.collection(collectionName);
+const collection_1 = database.collection(collectionCotizacion);
 
 app.use(cors());
 app.use(express.json());
@@ -40,8 +33,14 @@ app.use(express.json());
 // Define a route to fetch unique 'marca' values
 app.get('/api/marcas', async (req, res) => {
   try {
-    // Fetch unique 'marca' values from autos collection
-    const marcas = await Auto.distinct('MARCA');
+    const pipeline = [
+      { $group: { _id: "$MARCA" } },
+      { $project: { _id: 0, marca: "$_id" } }
+    ];
+
+    const result = await collection.aggregate(pipeline).toArray();
+    const marcas = result.map(item => item.marca);
+
     res.json({ marca: marcas });
   } catch (error) {
     console.error('Error fetching unique marcas:', error);
@@ -54,14 +53,15 @@ app.get('/api/model', async (req, res) => {
   const { marca, year } = req.query;
 
   try {
-    // Fetch descripcion_2 values from autos collection based on selected marca and year
-    const modelos = await Auto.find({ MARCA: marca, YEAR: parseInt(year) }, 'DESCRIPCION_2');
-    
-    result = JSON.parse(JSON.stringify(modelos))  
-    // Extract the "descripcion_2" values and handle null values
-    const descripcion_2 = result.map(item => item.DESCRIPCION_2); // Extracting only DESCRIPCION_2 values
-    
-    res.json({ Modelos: descripcion_2 });
+    const pipeline = [
+      { $match: { MARCA: marca, YEAR: parseInt(year) } },
+      { $project: { _id: 0, Descripcion_2: "$DESCRIPCION_2" } }
+    ];
+
+    const result = await collection.aggregate(pipeline).toArray();
+    const modelos = result.map(item => item.Descripcion_2);
+
+    res.json({ Modelos: modelos });
   } catch (error) {
     console.error('Error fetching descripcion_2:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -74,7 +74,7 @@ app.post('/api/submit', async (req, res) => {
     const { nombre, correo, codigoPostal, tipoVehiculo, marca, year, modelo } = req.body;
 
     // Create a new cotizacion document
-    const newCotizacion = new Cotizacion({
+    const newCotizacion = {
       nombre,
       correo,
       codigoPostal,
@@ -82,16 +82,14 @@ app.post('/api/submit', async (req, res) => {
       marca,
       year,
       modelo
-    });
+    };
 
-    // Save the cotizacion document to the database
-    await newCotizacion.save();
+    // Insert the cotizacion document into the database
+    await collection_1.insertOne(newCotizacion);
 
     // Send a response back to the client
     res.status(200).json({ message: 'Form submitted successfully!' });
 
-    // Now, you can send a WhatsApp message by sending a response back to the client,
-    // and the client-side JavaScript will handle opening the WhatsApp message.
   } catch (error) {
     console.error('Error handling form submission:', error);
     res.status(500).json({ error: 'Internal Server Error' });
