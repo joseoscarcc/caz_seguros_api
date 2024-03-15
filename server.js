@@ -101,7 +101,7 @@ app.listen(port, () => {
 });
 
 function sendWhatsAppMessage(nombre, correo, codigoPostal, tipoVehiculo, marca, year, modelo) {
-  const phonenumber = process.env.PHONENUMBER; // Replace with your phone number
+  const phonenumber = process.env.NEXT_PUBLIC_PHONENUMBER; // Replace with your phone number
   
   const url = `https://wa.me/${phonenumber}?text=*Nombre:* ${nombre}%0a*Email:* ${correo}%0a*Codigo Postal:* ${codigoPostal}%0a*Tipo de Vehículo:* ${tipoVehiculo}%0a*Marca:* ${marca}%0a*Año:* ${year}%0a*Modelo:* ${modelo}%0a*Solicitud de Cotización*`;
 
