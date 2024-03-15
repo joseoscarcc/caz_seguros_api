@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
-
 const app = express();
 const port = 3050;
 const uri = process.env.MONGODB;
@@ -17,15 +16,15 @@ const client = new MongoClient(uri, {
     }
 });
 
-const dbName = "CAZ";
-const collectionName = "autos";
-const collectionCotizacion = "cotizaciones";
+const dbName = process.env.DBNAME;
+const collectionName_1 = process.env.COLLECTIONNAME_1;
+const collectionName_2 = process.env.COLLECTIONNAME_2;
 
   // Create references to the database and collection in order to run
   // operations on them.
 const database = client.db(dbName);
-const collection = database.collection(collectionName);
-const collection_1 = database.collection(collectionCotizacion);
+const collection = database.collection(collectionName_1);
+const collection_1 = database.collection(collectionName_2);
 
 app.use(cors());
 app.use(express.json());
