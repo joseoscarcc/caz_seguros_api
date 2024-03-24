@@ -34,7 +34,8 @@ app.get('/api/marcas', async (req, res) => {
   try {
     const pipeline = [
       { $group: { _id: "$MARCA" } },
-      { $project: { _id: 0, marca: "$_id" } }
+      { $project: { _id: 0, marca: "$_id" } },
+      { $sort: { marca: 1 } } // Sort the "marca" field in ascending order
     ];
 
     const result = await collection.aggregate(pipeline).toArray();
